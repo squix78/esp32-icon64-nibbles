@@ -27,7 +27,7 @@ SmartLed leds( LED_WS2812, LED_COUNT, DATA_PIN, CHANNEL, DoubleBuffer );
 //Apa102 leds(LED_COUNT, CLK_PIN, DATA_PIN, DoubleBuffer);
 
 void setup() {
-  Serial.begin(9600);  
+  Serial.begin(115200);  
   randomSeed(analogRead(0));
 }
 
@@ -84,97 +84,148 @@ void showRgb() {
     leds.show();
 }
 
+struct Coordinates {
+  uint8_t x;
+  uint8_t y;
+};
 uint8_t counter = 0;
-const uint8_t nibbelsLength = 5;
-uint8_t x[nibbelsLength] = {5,5,5,5,5};
-uint8_t y[nibbelsLength] = {5,5,5,5,5};
+const uint8_t nibbelsMaxLength = 10;
+uint8_t nibbelsCurrentLength = 5;
+Coordinates nibbels[nibbelsMaxLength];
+Coordinates food;
+
 Direction nibbelsDirection = Up;
 int gradientX = 1;
 int gradientY = 0;
-void showNibbels() {
-  counter++;
-  hue++;
-  uint8_t head = counter % nibbelsLength;
-  uint8_t oldHead = (counter - 1) % nibbelsLength;
-  uint8_t oldX = x[oldHead];
-  uint8_t oldY = y[oldHead];
+uint8_t field[8][8] = {{3,3}};
 
-  if (oldX == 7 && nibbelsDirection == Right) {
-      if (random(9)> 4) {
-        nibbelsDirection = Up;
-      } else {
-        nibbelsDirection = Down;
-      }
-  } else if (oldX == 0 && nibbelsDirection == Left) {
-      if (random(9)> 4) {
-        nibbelsDirection = Up;
-      } else {
-        nibbelsDirection = Down;
-      }
-  } else if (oldY == 7 && nibbelsDirection == Up) {
-    if (random(9)> 4) {
-      nibbelsDirection = Right;
-    } else {
-      nibbelsDirection = Left;
-    }
-  } else if (oldY == 0 && nibbelsDirection == Down) {
-    if (random(9)> 4) {
-      nibbelsDirection = Right;
-    } else {
-      nibbelsDirection = Left;
-    }
+uint8_t headIndex = 0;
+bool isInitialized = false;
+uint8_t foodHue = random(255);
+
+int sgn(int value) {
+  if (value == 0) {
+    return 0;
+  } else if (value < 0) {
+    return -1;
   } else {
-    Direction newDirection = (Direction) random(4);
-    if (getOppositeDirection(newDirection) != nibbelsDirection) {
-      nibbelsDirection = newDirection;
+    return 1;
+  }
+}
+
+void showNibbels() {
+  if (!isInitialized) {
+    headIndex = 0;
+    nibbelsCurrentLength = 5;
+    for (int i = 0; i < nibbelsCurrentLength; i++) {
+      nibbels[i] = {3,3};
+    }
+    food.x = random(8);
+    food.y = random(8);
+    foodHue = random(255);
+
+    isInitialized = true;
+  }
+  
+  for (int x = 0; x < 8; x++) {
+    for (int y = 0; y < 8; y++) {
+      field[x][y] = 0;
     }
   }
 
-  switch(nibbelsDirection) {
-    case Up:
-      gradientX = 0;
-      gradientY = 1;
-      break;
-    case Down:
-      gradientX = 0;
-      gradientY = -1;
-      break;
-    case Left:
-      gradientX = -1;
-      gradientY = 0;
-      break;
-    case Right:
-      gradientX = 1;
-      gradientY = 0;
-      break;
+  for (int i = 0; i < nibbelsCurrentLength; i++) {
+    field[nibbels[i].x][nibbels[i].y] = 1;
   }
-  if (oldX + gradientX > 7 || oldX + gradientX <0) {
-    gradientX = 0;
+
+
+  Coordinates head = nibbels[headIndex];
+  uint8_t i = 0;
+  while(true) {
+    Coordinates newHead;
+    /*uint8_t direction = random(4);
+    switch(direction) {
+      case 0:
+        newHead.x = head.x -1;
+        newHead.y = head.y;
+        break;
+      case 1:
+        newHead.x = head.x + 1;
+        newHead.y = head.y;
+        break;
+      case 2:
+        newHead.x = head.x;
+        newHead.y = head.y - 1;
+        break;
+      case 3:
+        newHead.x = head.x;
+        newHead.y = head.y + 1;
+    }*/
+    uint8_t direction = random(2);
+    int gradient = 0;
+    int difference = 0;
+    switch(direction) {
+      case 0:
+        newHead.x = head.x - sgn(head.x - food.x);
+        newHead.y = head.y;
+        break;
+      case 1:
+        newHead.x = head.x;
+        newHead.y = head.y - sgn(head.y - food.y);
+        break;
+    }
+
+    if (newHead.x >= 0 && newHead.x < 8 
+      && newHead.y >= 0 && newHead.y < 8
+      && field[newHead.x][newHead.y] == 0
+      ) {
+        headIndex = (headIndex + 1) % nibbelsCurrentLength;
+        nibbels[headIndex].x = newHead.x;
+        nibbels[headIndex].y = newHead.y;
+        if (newHead.x == food.x && newHead.y == food.y) {
+          while(true) {
+            food.x = random(8);
+            food.y = random(8);
+            if (field[food.x][food.y] == 0) {
+              break;
+            }
+          }
+          hue = foodHue;
+          foodHue = random(255);
+          if (nibbelsCurrentLength < nibbelsMaxLength) {
+            nibbelsCurrentLength++;
+            nibbels[nibbelsCurrentLength - 1].x = newHead.x;
+            nibbels[nibbelsCurrentLength - 1].y = newHead.y;
+          }
+        }
+        break;
+    }
+      
+    if (i > 100) {
+      isInitialized = false;
+      break;
+    }
+    i++;
   }
-  if (oldY + gradientY > 7 || oldY + gradientY <0) {
-    gradientY = 0;
-  }
-  x[head] = (oldX + gradientX) % 8;
-  y[head] = (oldY + gradientY) % 8;
-  Serial.printf("%d, %d\n", x[head], y[head]);
-  //x[head] = (uint8_t) (sin(2 * PI * counter / 15) * 3.2 + 4.0);
-  //y[head] = (uint8_t) (cos(2 * PI * counter / 15) * 3.2 + 4.0);
+
+  
+
+  
+
   
   for ( int i = 0; i != LED_COUNT; i++ ) {
     leds[i] = Hsv{ static_cast< uint8_t >( hue ), 255, 0 };
   }
-  uint8_t color = hue;
-  for (int i = 0; i < nibbelsLength; i++) {
-    if (i == head) {
-      color = 10;
-    } else {
-      color = hue;
+
+  for (int i = 0; i < nibbelsCurrentLength; i++) {
+    uint8_t color = hue;
+    if (i == headIndex) {
+      color = 30;
     }
-    leds[getLedIndex(x[i], y[i])] = Hsv{ color, 255, 255 };
+    leds[getLedIndex(nibbels[i].x, nibbels[i].y)] = Hsv{ color, 255, 255 };
   }
-
+  leds[getLedIndex(food.x, food.y)] = Hsv{ foodHue, 255, 255 };
   leds.show();
-
+  
 }
 
 void loop() {
@@ -192,5 +243,5 @@ void loop() {
         
     //else
     //    showRgb();
-    delay( 200 );
+    delay( 300 );
 }
