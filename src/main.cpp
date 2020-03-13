@@ -14,8 +14,8 @@ enum Direction {
   Up, Down, Left, Right
 };
 
-uint8_t nibbelsX = 5;
-uint8_t nibbelsY = 5;
+uint8_t nibblesX = 5;
+uint8_t nibblesY = 5;
 
 Animation animation = Nibbels;
 
@@ -89,12 +89,12 @@ struct Coordinates {
   uint8_t y;
 };
 uint8_t counter = 0;
-const uint8_t nibbelsMaxLength = 10;
-uint8_t nibbelsCurrentLength = 5;
-Coordinates nibbels[nibbelsMaxLength];
+const uint8_t nibblesMaxLength = 10;
+uint8_t nibblesCurrentLength = 5;
+Coordinates nibbles[nibblesMaxLength];
 Coordinates food;
 
-Direction nibbelsDirection = Up;
+Direction nibblesDirection = Up;
 int gradientX = 1;
 int gradientY = 0;
 uint8_t field[8][8] = {{3,3}};
@@ -116,9 +116,9 @@ int sgn(int value) {
 void showNibbels() {
   if (!isInitialized) {
     headIndex = 0;
-    nibbelsCurrentLength = 5;
-    for (int i = 0; i < nibbelsCurrentLength; i++) {
-      nibbels[i] = {3,3};
+    nibblesCurrentLength = 5;
+    for (int i = 0; i < nibblesCurrentLength; i++) {
+      nibbles[i] = {3,3};
     }
     food.x = random(8);
     food.y = random(8);
@@ -133,12 +133,12 @@ void showNibbels() {
     }
   }
 
-  for (int i = 0; i < nibbelsCurrentLength; i++) {
-    field[nibbels[i].x][nibbels[i].y] = 1;
+  for (int i = 0; i < nibblesCurrentLength; i++) {
+    field[nibbles[i].x][nibbles[i].y] = 1;
   }
 
 
-  Coordinates head = nibbels[headIndex];
+  Coordinates head = nibbles[headIndex];
   uint8_t i = 0;
   while(true) {
     Coordinates newHead;
@@ -178,9 +178,9 @@ void showNibbels() {
       && newHead.y >= 0 && newHead.y < 8
       && field[newHead.x][newHead.y] == 0
       ) {
-        headIndex = (headIndex + 1) % nibbelsCurrentLength;
-        nibbels[headIndex].x = newHead.x;
-        nibbels[headIndex].y = newHead.y;
+        headIndex = (headIndex + 1) % nibblesCurrentLength;
+        nibbles[headIndex].x = newHead.x;
+        nibbles[headIndex].y = newHead.y;
         if (newHead.x == food.x && newHead.y == food.y) {
           while(true) {
             food.x = random(8);
@@ -191,10 +191,10 @@ void showNibbels() {
           }
           hue = foodHue;
           foodHue = random(255);
-          if (nibbelsCurrentLength < nibbelsMaxLength) {
-            nibbelsCurrentLength++;
-            nibbels[nibbelsCurrentLength - 1].x = newHead.x;
-            nibbels[nibbelsCurrentLength - 1].y = newHead.y;
+          if (nibblesCurrentLength < nibblesMaxLength) {
+            nibblesCurrentLength++;
+            nibbles[nibblesCurrentLength - 1].x = newHead.x;
+            nibbles[nibblesCurrentLength - 1].y = newHead.y;
           }
         }
         break;
@@ -216,12 +216,12 @@ void showNibbels() {
     leds[i] = Hsv{ static_cast< uint8_t >( hue ), 255, 0 };
   }
 
-  for (int i = 0; i < nibbelsCurrentLength; i++) {
+  for (int i = 0; i < nibblesCurrentLength; i++) {
     uint8_t color = hue;
     if (i == headIndex) {
       color = 30;
     }
-    leds[getLedIndex(nibbels[i].x, nibbels[i].y)] = Hsv{ color, 255, 255 };
+    leds[getLedIndex(nibbles[i].x, nibbles[i].y)] = Hsv{ color, 255, 255 };
   }
   leds[getLedIndex(food.x, food.y)] = Hsv{ foodHue, 255, 255 };
   leds.show();
