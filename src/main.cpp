@@ -5,74 +5,26 @@ const int LED_COUNT = 64;
 const int DATA_PIN = 22;
 const int CHANNEL = 0;
 
-enum Animation {
-  Gradient, 
-  Nibbels
-};
-
-enum Direction {
-  Up, Down, Left, Right
-};
-
-uint8_t nibblesX = 5;
-uint8_t nibblesY = 5;
-
-Animation animation = Nibbels;
 
 // SmartLed -> RMT driver (WS2812/WS2812B/SK6812/WS2813)
 SmartLed leds( LED_WS2812, LED_COUNT, DATA_PIN, CHANNEL, DoubleBuffer );
 
-//const int CLK_PIN = 23;
-// APA102 -> SPI driver
-//Apa102 leds(LED_COUNT, CLK_PIN, DATA_PIN, DoubleBuffer);
 
 void setup() {
-  Serial.begin(115200);  
+  Serial.begin(115200); 
+
+  // seed the random number generator 
   randomSeed(analogRead(0));
 }
 
+// convert coordinates into the index of the 
+// WS2812 bus
 uint8_t getLedIndex(uint8_t x, uint8_t y) {
-  // y = 0; x = 0: index = 0
-  // y = 0; x = 7; index = 7
-  // y= 1; x = 0; index = 15
-  // y = 1; x = 7; index = 8;
-  // y = 1; x = 6; index = 9;
-  // y = 2; x = 0; index = 16;
-  // y = 2; x = 7; index = 23;
   if (y % 2 == 0) {
     return y * 8 + x;
   } else {
     return y*8 + (7 - x);
   }
-  
-}
-
-Direction getOppositeDirection(Direction direction) {
-  switch (direction) {
-  case Up:
-    return Down;
-  case Down:
-    return Up;
-  case Left:
-    return Right;
-  case Right:
-    return Left;
-  }
-}
-
-uint8_t hue;
-void showGradient() {
-    hue++;
-    // Use HSV to create nice gradient
-    for ( int i = 0; i != LED_COUNT; i++ )
-        leds[ i ] = Hsv{ static_cast< uint8_t >( hue ), 255, 10 };
-    leds.show();
-    // Show is asynchronous; if we need to wait for the end of transmission,
-    // we can use leds.wait(); however we use double buffered mode, so we
-    // can start drawing right after showing.
-    if (hue> 200) {
-      animation = Nibbels;
-    }
 }
 
 void showRgb() {
@@ -94,7 +46,6 @@ uint8_t nibblesCurrentLength = 5;
 Coordinates nibbles[nibblesMaxLength];
 Coordinates food;
 
-Direction nibblesDirection = Up;
 int gradientX = 1;
 int gradientY = 0;
 uint8_t field[8][8] = {{3,3}};
@@ -102,6 +53,7 @@ uint8_t field[8][8] = {{3,3}};
 uint8_t headIndex = 0;
 bool isInitialized = false;
 uint8_t foodHue = random(255);
+uint8_t hue = 20;
 
 int sgn(int value) {
   if (value == 0) {
@@ -137,38 +89,18 @@ void showNibbels() {
     field[nibbles[i].x][nibbles[i].y] = 1;
   }
 
-
   Coordinates head = nibbles[headIndex];
   uint8_t i = 0;
   while(true) {
-    Coordinates newHead;
-    /*uint8_t direction = random(4);
-    switch(direction) {
-      case 0:
-        newHead.x = head.x -1;
-        newHead.y = head.y;
-        break;
-      case 1:
-        newHead.x = head.x + 1;
-        newHead.y = head.y;
-        break;
-      case 2:
-        newHead.x = head.x;
-        newHead.y = head.y - 1;
-        break;
-      case 3:
-        newHead.x = head.x;
-        newHead.y = head.y + 1;
-    }*/
+    Coordinates newHead = {4,4};
     uint8_t direction = random(2);
-    int gradient = 0;
-    int difference = 0;
     switch(direction) {
       case 0:
         newHead.x = head.x - sgn(head.x - food.x);
         newHead.y = head.y;
         break;
       case 1:
+      default:
         newHead.x = head.x;
         newHead.y = head.y - sgn(head.y - food.y);
         break;
@@ -207,15 +139,12 @@ void showNibbels() {
     i++;
   }
 
-  
-
-  
-
-  
+  // Clear Leds
   for ( int i = 0; i != LED_COUNT; i++ ) {
     leds[i] = Hsv{ static_cast< uint8_t >( hue ), 255, 0 };
   }
 
+  // draw nibbles
   for (int i = 0; i < nibblesCurrentLength; i++) {
     uint8_t color = hue;
     if (i == headIndex) {
@@ -229,19 +158,6 @@ void showNibbels() {
 }
 
 void loop() {
-    
-    //if ( millis() % 10000 < 5000 )
-    switch(animation) {
-      case Gradient:
-        showGradient();
-        break;
-      case Nibbels:
-        showNibbels();
-        break;
-
-    }
-        
-    //else
-    //    showRgb();
+    showNibbels();
     delay( 300 );
 }
